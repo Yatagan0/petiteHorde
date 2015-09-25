@@ -22,7 +22,7 @@ class petitHomme:
             self.name +=random.choice(consonnes)
             if random.randint(0,1) ==0:
                 self.name +=random.choice(voyelles)
-        print self.name
+        #print self.name
         self.opinions = {}
         self.opinions[self.name]  = 1
         for p in self.horde.personnes.values():
@@ -41,6 +41,8 @@ class petitHomme:
         print self.name
         self.averageOpinions()
         print self.opinions
+        hope = self.horde.getHope(self.name)
+        print "hope ",hope
         
         if self.action == "cueillir":
             result = 0.6*(random.random()+random.random()) + 0.2
@@ -51,7 +53,7 @@ class petitHomme:
             self.forme = 1.
             self.horde.reserve += result - 1.
             self.horde.changeOpinion(self.name, result - 1.)
-            self.opinions[self.name] +=  result - 1.
+            self.opinions[self.name] +=  result 
             #changer opinion
         else:
             prendReserve = min(self.horde.reserve/len(self.horde.personnes.keys()), 1. - result)
@@ -121,7 +123,13 @@ class petiteHorde:
                     p.opinions[name]  = 0
                 if p.opinions[name]  > 1:
                     p.opinions[name]  = 1 
-        
+
+    def getHope(self, name):
+        result = 0
+        for p in self.personnes.values():
+            result += p.opinions[name]
+        return result
+
     def update(self):
         for p in self.personnes.values():
             
