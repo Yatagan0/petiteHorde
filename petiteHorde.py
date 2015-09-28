@@ -34,26 +34,43 @@ class petitHomme:
         self.forme = 1.
         
         self.action = "rester"
+        self.group = None
         self.oldReserve = self.horde.reserve
         
     def update(self):
         self.age+= 1./52
-        print self.name
+        #~ print self.name
         self.averageOpinions()
-        print self.opinions
-        hope = self.horde.getHope(self.name)
-        print "hope ",hope
+        #~ print self.opinions
+        
+        self.resolveAction()
+
+        self.selectNextAction()
+        
+    def resolveAction(self):
         
         if self.action == "cueillir":
             result = 0.6*(random.random()+random.random()) + 0.2
-            print "cueillette ", result
+            #~ print "cueillette ", result
+        elif self.action == "groupAction":
+            result = self.group.resolveAction(self)
         else:
             result = 0.
+            
+        print self.name, " brings from ", self.action,": ",result
+            
         if result >= 1:
             self.forme = 1.
             self.horde.reserve += result - 1.
-            self.horde.changeOpinion(self.name, result - 1.)
-            self.opinions[self.name] +=  result 
+            if self.action == "groupAction":
+                self.horde.changeOpinion(self.name, (result - 1.)/2)
+                self.opinions[self.name] +=  result/2
+                self.horde.changeOpinion(self.group.leader.name, (result - 1.)/2)
+                self.opinions[self.group.leader.name] +=  result/2
+            else:
+                
+                self.horde.changeOpinion(self.name, result - 1.)
+                self.opinions[self.name] +=  result 
             #changer opinion
         else:
             prendReserve = min(self.horde.reserve/len(self.horde.personnes.keys()), 1. - result)
@@ -63,11 +80,26 @@ class petitHomme:
             self.opinions[self.name] -=  prendReserve
             
         
-        #~ print "forme ",self.forme
-        #~ print "reserve ",self.horde.reserve
+    def selectNextAction(self):
+        hope = self.horde.getHope(self.name)
+        print self.name,"hope ",hope
         
-        actions = ["cueillir", "rester"]
+        actions = ["cueillir", "rester", "groupAction"]
         self.action = random.choice(actions)
+        if self.action == "groupAction":
+            self.group = None
+            for ga in self.horde.groupActivities:
+                if ga.canJoin(self):
+                    ga.join(self)
+                    break
+            if self.group is None:
+                num = int(hope) +1
+                print self.name,"creating group for ",num," people"
+                ga = groupActivity(self, "chasse", {"people" : num})
+                self.horde.groupActivities.append(ga)
+                ga.join(self)
+                
+        print self.name, ": chosen action ",self.action
         
         
         
@@ -94,7 +126,33 @@ class petitHomme:
                 self.opinions[p]  = 1 
     
             #~ print "after ",self.opinions[p]
-     
+    
+class groupActivity:
+    def __init__(self, leader, type, requirements):
+        self.type = type
+        self.requirements = requirements
+        self.leader = leader
+        
+    def canJoin(self, people):
+        for r in self.requirements.keys():
+            if self.requirements[r] <= 0:
+                return False
+                
+        return True
+    
+    def join(self, people):
+        people.group = self
+        for r in self.requirements.keys():
+            if r == "people":
+                self.requirements[r] -= 1
+            else:
+                self.requirements[r] -= people.carac[r]
+        
+    def resolveAction(self, people):
+        #~ people.group = None
+        if people == self.leader:
+            people.horde.groupActivities.remove(self)
+        return 1
             
 class petiteHorde:
     def __init__(self, terrain):
@@ -106,6 +164,7 @@ class petiteHorde:
         for p in self.personnes.values():
             p.age = 15
             
+        self.groupActivities = []
         
             
     def addPersonne(self):
