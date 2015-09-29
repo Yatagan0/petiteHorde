@@ -1,6 +1,13 @@
 
 import random
 
+
+toLog = []
+def sparseLogs(name, toPrint):
+    if name in toLog:
+        print toPrint
+    
+
 class petitTerrain:
     def __init__(self, taille):
         self.taille = taille
@@ -57,7 +64,8 @@ class petitHomme:
         else:
             result = 0.
             
-        print self.name, " brings from ", self.action,": ",result
+        sparseLogs(self.name, self.name+ " brings from "+self.action+": "+str(result))
+        #~ print self.name, " brings from ", self.action,": ",result
             
         if result >= 1:
             self.forme = 1.
@@ -82,7 +90,7 @@ class petitHomme:
         
     def selectNextAction(self):
         hope = self.horde.getHope(self.name)
-        print self.name,"hope ",hope
+        sparseLogs(self.name, self.name+" hope "+str(hope))
         
         actions = ["cueillir", "rester", "groupAction"]
         self.action = random.choice(actions)
@@ -94,12 +102,18 @@ class petitHomme:
                     break
             if self.group is None:
                 num = int(hope) +1
-                print self.name,"creating group for ",num," people"
-                ga = groupActivity(self, "chasse", {"people" : num})
-                self.horde.groupActivities.append(ga)
-                ga.join(self)
+                if num > 1:
+                    #~ sparseLogs(self.name,"creating group for "+str(num)+" people")
+                    print self.name+"creating group for "+str(num)+" people"
+                    ga = groupActivity(self, "chasse", {"people" : num})
+                    self.horde.groupActivities.append(ga)
+                    ga.join(self)
+                else:
+                    self.selectNextAction()
+                    return
                 
-        print self.name, ": chosen action ",self.action
+        sparseLogs(self.name,self.name+ ": chosen action "+self.action)
+        #~ print self.name, ": chosen action ",self.action
         
         
         
@@ -202,6 +216,10 @@ t = petitTerrain(5)
 
 pH = petiteHorde(t)
 
+toLog.append(pH.personnes.keys()[0])
+print toLog
+
 for i in range(10):
+    print "---"
     pH.update()
     
