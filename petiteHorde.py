@@ -25,7 +25,11 @@ def dictDist(dict1, dict2):
         if k2 not in dict1.keys():
             d += abs(dict2[k2])
     return d
-        
+ 
+from json import JSONEncoder
+class MyEncoder(JSONEncoder):
+    def default(self, o):
+        return o.__dict__           
     
 needsFromObjects = {}
 needsFromObjects["baies"] = {"faim":0.6, "soif":0.5}
@@ -43,35 +47,57 @@ voyelles_frequentes = "a.e.i.o.on.ou.en.au"
 voyelles = voyelles_frequentes.split('.')*2 + voyelles_rares.split('.')    
 
 class petitHomme:
-    def __init__(self, horde):
+    def __init__(self, horde, saved=None):
         self.horde = horde
-        self.name = random.choice(consonnes)+random.choice(voyelles)+random.choice(consonnes).lower()+random.choice(voyelles)
-        if random.randint(0,1) ==0:
-            self.name +=random.choice(consonnes).lower()
-            if random.randint(0,1) ==0:
-                self.name +=random.choice(voyelles)
-        #print self.name
-        self.opinions = {}
-        self.opinions[self.name]  = {}
-        for p in self.horde.personnes.values():
-            self.opinions[p.name]  = {}
-            p.opinions[self.name] = {}
-            
+        
+
         self.objects = {}
-        
         self.asked = {}
-            
         self.knownActions = {}
-        self.knownActions["rester"]= petiteAction("rester")
-            
-        self.age = 0
-        self.sante = 1.
-        self.forme = 1.
         
-        self.action = "rester"
+        if saved is None:
+            self.name = random.choice(consonnes)+random.choice(voyelles)+random.choice(consonnes).lower()+random.choice(voyelles)
+            if random.randint(0,1) ==0:
+                self.name +=random.choice(consonnes).lower()
+                if random.randint(0,1) ==0:
+                    self.name +=random.choice(voyelles)
+        #print self.name
+
+            self.knownActions["rester"]= petiteAction("rester")
+            
+            self.age = 0
+            self.sante = 1.
+            self.forme = 1.
+            
+            self.action = "rester"
+            
+            
+        else:
+            #~ print saved
+            #~ print saved["name"]
+            self.name = saved["name"]
+            
+            for a in saved["knownActions"].values():
+            
+                self.knownActions[a["name"]]= petiteAction(a["name"], a)
+            
+            self.age = float(saved["age"])
+            self.sante = 1.
+            self.forme =  float(saved["forme"])
+            
+            self.action = saved["action"]
+
+
+    #~ def __dict__(self):
+        #~ print "blu"
+        #~ self.horde = None
+        #~ return Object.__dict__(self)
 
     def write(self):
-        return self.name
+        self.horde = None
+        #~ print self.__dict__
+        jwrite = json.dumps(self, cls=MyEncoder)#self.__dict__)#, default=lambda o: o.__dict__)
+        return jwrite
 
     def update(self):
         self.age+= 1./52       
@@ -145,7 +171,7 @@ class petitHomme:
 
         if random.randint(0, 9) ==0:
             self.action = random.choice(allActions)
-            #~ sparseLogs(self.name, "randomly chosen "+str(self.action))
+            sparseLogs(self.name, "randomly chosen "+str(self.action))
             return
         
         action = "rester"
@@ -164,10 +190,16 @@ class petitHomme:
         #~ sparseLogs(self.name, "chosen "+str(self.action))
 
 class petiteAction:
-    def __init__(self, name):
+    def __init__(self, name, saved = None):
         self.name = name
         self.needs = {}
         self.results = {}
+        if saved is not None:
+            #~ print saved
+            for r in saved["results"].keys():
+                self.results[r] = float(saved["results"][r])
+            for n in saved["needs"].keys():
+                self.results[n] = float(saved["nedds"][n])
         
     def expects(self, objects):
 ##        d = dictDist(objects, self.needs)
@@ -206,13 +238,22 @@ class petiteAction:
 
       
 class petiteMaison:
-    def __init__(self):
-        self.type = "grotte"
+    def __init__(self, saved = None):
         self.objects = {}
         self.needs = {}
         
+        
+        if saved is None:
+            self.type = "grotte"
+        else:
+            self.type = saved["type"]
+            
+            for o in saved["objects"].keys():
+                self.addObject(o, saved["objects"][o])
+
     def write(self):
-        return self.type
+        return json.dumps(self, default=lambda o: o.__dict__)
+        #~ return self.type
         
     def addObject(self, name, num):
         self.objects[name] = self.objects.get(name, 0.) + num
@@ -239,38 +280,33 @@ class petiteMaison:
                     return
 
 class petiteHorde:
-    def __init__(self):
-        self.shelter = petiteMaison()
+    def __init__(self, saved = None):
         self.personnes = {}
-        for i in range(10):
-            self.addPersonne()
-        for p in self.personnes.values():
-            p.age = 15
+        
+        if saved == None:
+            self.shelter = petiteMaison()
             
-    def addPersonne(self):
-        homme = petitHomme(self)
+            for i in range(10):
+                self.addPersonne()
+
+        else:
+            self.shelter = petiteMaison(saved["shelter"])
+            for n in saved["personnes"].values():
+                self.addPersonne(n)
+            
+    def addPersonne(self, saved=None):
+        homme = petitHomme(self, saved)
+        if saved is None:
+            homme.age = 15
         self.personnes[homme.name] = homme
         
     def write(self):
-        toWrite = {}
-        toWrite["shelter"] = self.shelter.write()
-        toWrite["personnes"]  = []
+
         for p in self.personnes.values():
-            toWrite["personnes"].append(p.write())
+            p.horde = None
             
-        return toWrite
-        
-    #~ def changeOpinion(self, name, quantite):
-        #~ for p in self.personnes.values():
-            #~ if p.name == name:
-                #~ continue
-                
-            #~ if p.action == "rester":
-                #~ p.opinions[name] += quantite
-                #~ if p.opinions[name]  < 0:
-                    #~ p.opinions[name]  = 0
-                #~ if p.opinions[name]  > 1:
-                    #~ p.opinions[name]  = 1 
+        return json.dumps(self, cls=MyEncoder, sort_keys = True, indent = 4)
+
                     
     def peopleAtHome(self):
         result = []
@@ -296,11 +332,19 @@ class petiteHorde:
             
             p.update()
             
+import json
+newHorde =False
 
-pH = petiteHorde()
+if newHorde:
+    pH = petiteHorde()
 
-pH.shelter.addObject("baies", 2)
-pH.shelter.addObject("viande", 2)
+    pH.shelter.addObject("baies", 2)
+    pH.shelter.addObject("viande", 2)
+else:
+    f = open('horde.json', 'r')
+    content = json.loads(f.read())
+    #~ print content
+    pH = petiteHorde(content)
 
 
 toLog.append(pH.personnes.keys()[0])
@@ -309,27 +353,11 @@ toLog.append(pH.personnes.keys()[0])
 
 for i in range(10):
     print "---"
-    print pH.shelter.objects
+    #~ print pH.shelter.objects
     pH.update()
-    
-print pH.write()
-##                        
-##                        
-##from pprint import pprint
-##
-##import json
-##
-##json_data=open('JsonFileExample')
-##print type(json_data), json_data
-##
-##data = json.load(json_data)
-##print type(data)
-##pprint(data)
-##
-##json_data.close()
 
 
 
-import json
-jwrite =  json.dumps(pH.write())
-##print json.loads('["foo", {"bar":["baz", null, 1.0, 2]}]')
+f = open('horde.json', 'w')
+f.write(pH.write())
+f.close()
