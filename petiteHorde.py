@@ -55,6 +55,7 @@ class petitHomme:
         self.objects = {}
         self.asked = {}
         self.knownActions = {}
+        self.sante = []
         
         if saved is None:
             self.name = random.choice(consonnes)+random.choice(voyelles)+random.choice(consonnes).lower()+random.choice(voyelles)
@@ -67,7 +68,7 @@ class petitHomme:
             self.knownActions["rester"]= petiteActionConnue("rester")
             
             self.age = 0
-            self.sante = 1.
+            
             self.forme = 1.
             
             self.action = "rester"
@@ -83,7 +84,8 @@ class petitHomme:
                 self.knownActions[a["name"]]= petiteActionConnue(a["name"], a)
             
             self.age = float(saved["age"])
-            self.sante = 1.
+            self.sante = list(saved["sante"])
+            print self.sante
             self.forme =  float(saved["forme"])
             
             self.action = saved["action"]
@@ -104,6 +106,9 @@ class petitHomme:
         self.age+= 1./52       
         
         self.resolveAction()
+        if self.forme == 0:
+            #~ print self.name," dead"
+            return
         self.consume()
         self.getExpectations()
         self.selectAction()
@@ -153,6 +158,9 @@ class petitHomme:
                 #~ sparseLogs(self.name, "asking1 for "+str( max(0, 2 - manger/n)))
             else:
                 self.horde.askFor(need, 1.)
+                
+            if need == "faim":
+                self.forme = toEat
                 #~ sparseLogs(self.name, "asking2 for "+str(1))
             #~ sparseLogs(self.name, "manger "+str(manger/n)+" toEat "+str(toEat))
         #~ print self.horde.shelter.objects
@@ -189,6 +197,17 @@ class petitHomme:
         #~ self.action = random.choice()
         self.action = action
         #~ sparseLogs(self.name, "chosen "+str(self.action))
+        
+        
+    def getHealth(self):
+        h = self.forme
+        #~ print h
+        for i in self.sante:
+            h *= i[1]
+            #~ print h
+            
+        #~ print "health ",h
+        return h
 
 class petiteActionConnue:
     def __init__(self, name, saved = None):
@@ -332,6 +351,10 @@ class petiteHorde:
         for p in self.personnes.values():
             
             p.update()
+            if p.forme == 0:
+                print "Unfortunately, ",p.name," died"
+                del self.personnes[p.name]
+                
             
 import json
 newHorde =False

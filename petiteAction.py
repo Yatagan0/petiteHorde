@@ -5,6 +5,7 @@ class petiteAction:
         self.name = name
         self.results = {}
         self.newActions = {}
+        self.risks = {}
         
     def resolve(self, p):
         
@@ -14,6 +15,16 @@ class petiteAction:
                 #~ print "bla !"
                 p.action = n
                 return allActions[n].resolve(p)
+                
+        for r in self.risks.keys():
+            if random.random() < self.risks[r][0]:
+                #~ print "aie !"
+                if p.getHealth() > 1 - self.risks[r][1]:
+                    p.sante.append([r,self.risks[r][1],self.risks[r][2] ])
+                    #~ print "ouf"
+                else:
+                    #~ print "dead"
+                    p.forme = 0
         
         res = {}
         for r in self.results.keys():
@@ -28,28 +39,30 @@ allActions[act.name] = act
 
 act = petiteAction("cueillir baies")
 act.results["baies"] = [0.2, 0.8]
-act.newActions["cueillir champignons"] = 0.05
-act.newActions["cueillir racines"] = 0.01
-act.newActions["cueillir fruits"] = 0.01
+act.newActions["cueillir champignons"] = 0.005
+act.newActions["cueillir racines"] = 0.001
+act.newActions["cueillir fruits"] = 0.001
 allActions[act.name] = act
 
 act = petiteAction("cueillir racines")
 act.results["racines"] = [0., 0.7]
 act.results["champignons"] = [0., 0.2]
-act.newActions["cueillir champignons"] = 0.05
-act.newActions["cueillir baies"] = 0.01
+act.newActions["cueillir champignons"] = 0.005
+act.newActions["cueillir baies"] = 0.001
+act.risks["orties"] = [0.1, 0.9, 1]
 allActions[act.name] = act
 
 act = petiteAction("cueillir champignons")
 act.results["champignons"] = [0.1, 0.6]
 act.results["baies"] = [0., 0.3]
-act.newActions["cueillir baies"] = 0.05
-act.newActions["cueillir racines"] = 0.05
+act.newActions["cueillir baies"] = 0.005
+act.newActions["cueillir racines"] = 0.005
+act.risks["champignon veneneux"] = [0.1, 0.7, 1]
 allActions[act.name] = act
 
 act = petiteAction("cueillir fruits")
 act.results["fruits"] = [0.3, 0.6]
 act.results["baies"] = [0., 0.2]
-act.newActions["cueillir baies"] = 0.05
+act.newActions["cueillir baies"] = 0.005
 allActions[act.name] = act
 
