@@ -2,9 +2,9 @@
 
 import random
 
+import petiteAction
 #TODO
-#save
-#technologies
+
 #sante
 ## age
 ## naissances
@@ -37,6 +37,7 @@ needsFromObjects["racines"] = {"faim":0.9}
 needsFromObjects["champignons"] = {"faim":0.8, "soif":0.2}
 needsFromObjects["eau"] = {"soif":1.}
 needsFromObjects["viande"] = {"faim":1.}
+needsFromObjects["fruits"] = {"faim":0.8, "soif":0.2}
         
         
 consonnes_rares = "B.D.F.G.H.J.V.Qu.Ch.Pr.Cr.Sc"
@@ -63,7 +64,7 @@ class petitHomme:
                     self.name +=random.choice(voyelles)
         #print self.name
 
-            self.knownActions["rester"]= petiteAction("rester")
+            self.knownActions["rester"]= petiteActionConnue("rester")
             
             self.age = 0
             self.sante = 1.
@@ -79,7 +80,7 @@ class petitHomme:
             
             for a in saved["knownActions"].values():
             
-                self.knownActions[a["name"]]= petiteAction(a["name"], a)
+                self.knownActions[a["name"]]= petiteActionConnue(a["name"], a)
             
             self.age = float(saved["age"])
             self.sante = 1.
@@ -108,20 +109,15 @@ class petitHomme:
         self.selectAction()
 
     def resolveAction(self):
-        result = {}
-        if self.action == "cueillir baies":
-            result["baies"] = 0.6*(random.random()+random.random()) + 0.2
-        elif self.action == "cueillir racines":
-            result["racines"] = 0.7*(random.random()+random.random())
-            result["champignons"] = 0.2*(random.random()+random.random())
-        elif self.action == "cueillir champignons":
-            result["baies"] = 0.3*(random.random()+random.random())
-            result["champignons"] = 0.5*(random.random()+random.random())
+        prevAct = self.action
+        result = petiteAction.allActions[self.action].resolve(self)
+        if self.action is not prevAct:
+            sparseLogs(self.name, self.name+ ": in fact, I did "+self.action+" instead of "+prevAct)
             
         sparseLogs(self.name, self.name+ " brings from "+self.action+": "+str(result))
         
         if self.action not in self.knownActions.keys():
-            self.knownActions[self.action] = petiteAction(self.action)
+            self.knownActions[self.action] = petiteActionConnue(self.action)
             
         self.knownActions[self.action].feedback({}, result)
         self.action = ""     
@@ -167,19 +163,24 @@ class petitHomme:
         pass
 
     def selectAction(self):
-        allActions =["cueillir baies","cueillir racines","cueillir champignons", "rester"]
+        #~ allActions =["cueillir baies","cueillir racines","cueillir champignons", "rester"]
 
         if random.randint(0, 9) ==0:
-            self.action = random.choice(allActions)
-            sparseLogs(self.name, "randomly chosen "+str(self.action))
-            return
-        
+            name = random.choice(self.horde.personnes.keys())
+            if name != self.name:
+                self.action = self.horde.personnes[name].action
+            
+            
+            #~ self.action = random.choice(allActions)
+                sparseLogs(self.name, "chosen "+str(self.action)+", like "+name)
+                return
+            
         action = "rester"
         exp = 100.
         for a in self.knownActions.values():
             e= dictDist(a.expects({}), self.asked)
             #~ sparseLogs(self.name, a.name+" exp "+str(e))
-            if e < exp:
+            if e < exp and random.random() < 0.9:
                 exp = e
                 action = a.name
 ##                sparseLogs(self.name, "exp "+str(exp))
@@ -189,7 +190,7 @@ class petitHomme:
         self.action = action
         #~ sparseLogs(self.name, "chosen "+str(self.action))
 
-class petiteAction:
+class petiteActionConnue:
     def __init__(self, name, saved = None):
         self.name = name
         self.needs = {}
@@ -334,7 +335,6 @@ class petiteHorde:
             
 import json
 newHorde =False
-
 if newHorde:
     pH = petiteHorde()
 
