@@ -68,7 +68,7 @@ class petitHomme:
             self.knownActions["rester"]= petiteActionConnue("rester")
             
             self.age = 0
-            
+            self.male = random.randint(0, 1)==0
             self.forme = 1.
             
             self.action = "rester"
@@ -85,7 +85,8 @@ class petitHomme:
             
             self.age = float(saved["age"])
             self.sante = list(saved["sante"])
-            print self.sante
+            self.male = bool(saved["male"] ) #saved["male"] == "True"
+            #~ print self.sante
             self.forme =  float(saved["forme"])
             
             self.action = saved["action"]
@@ -103,7 +104,8 @@ class petitHomme:
         return jwrite
 
     def update(self):
-        self.age+= 1./52       
+        self.updateHealth()
+
         
         self.resolveAction()
         if self.forme == 0:
@@ -112,6 +114,57 @@ class petitHomme:
         self.consume()
         self.getExpectations()
         self.selectAction()
+        
+    def updateHealth(self):
+        self.age+= 1./52     
+        isEnceinte = False
+        for h in self.sante:
+            h[2] -=1
+            if h[0] == "enceinte" :
+                isEnceinte  = True
+                if random.randint(0, 7) == 0:
+                    h[1] -= 0.1
+                    
+            if h[2] == 0:
+                if h[0] == "enceinte":
+                    self.addHealthEvent("accouchement", 0.6, 1)
+                    if self.forme > 0:
+                        print self.name, " a accouche"
+                        if random.randint(0, 10)==0:
+                            print "mais le bebe n'a pas survecu"
+                        else:
+                            p = self.horde.addPersonne()
+                            print "le bebe s'appelle ",p.name
+                            if p.male:
+                                print "c'est un garcon"
+                            else:
+                                print "c'est une fille"
+                    else:
+                        print self.name, " a peri durant l'accouchement"
+                        if random.randint(0, 1)==0:
+                            print "et le bebe n'a pas survecu"
+                        else:
+                            p = self.horde.addPersonne()
+                            print "le bebe s'appelle ",p.name
+                            if p.male:
+                                print "c'est un garcon"
+                            else:
+                                print "c'est une fille"
+                        
+                self.sante.remove(h)
+                
+                
+        if not isEnceinte and not self.male and self.age>15 and self.age < 30 and random.randint(0, 25)==0:
+            self.sante.append(["enceinte", 1.0, 40])
+        
+    def addHealthEvent(self, name, gravity, time):
+        h = self.getHealth()
+        if h < 1 - gravity:
+            if h < random.random()*(1 - gravity):
+                self.forme = 0
+                
+        self.sante.append([name,gravity,time ])
+
 
     def resolveAction(self):
         prevAct = self.action
@@ -307,7 +360,8 @@ class petiteHorde:
             self.shelter = petiteMaison()
             
             for i in range(10):
-                self.addPersonne()
+                p = self.addPersonne()
+                p.age = 15
 
         else:
             self.shelter = petiteMaison(saved["shelter"])
@@ -316,9 +370,9 @@ class petiteHorde:
             
     def addPersonne(self, saved=None):
         homme = petitHomme(self, saved)
-        if saved is None:
-            homme.age = 15
+
         self.personnes[homme.name] = homme
+        return homme
         
     def write(self):
 
