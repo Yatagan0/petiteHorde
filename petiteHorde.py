@@ -116,14 +116,26 @@ class petitHomme:
         self.selectAction()
         
     def updateHealth(self):
-        self.age+= 1./52     
+        oldAge = int(self.age)
+        self.age+= 1./52    
+
+        if int(self.age) > oldAge:
+            print self.name+" anniversaire : "+str(int(self.age))
+            if int(self.age) == 30:
+                self.sante.append(["age", 1.0, -1])
+                
+        
         isEnceinte = False
         for h in self.sante:
-            h[2] -=1
+            if h[2] >=0:
+                h[2] -=1
             if h[0] == "enceinte" :
                 isEnceinte  = True
                 if random.randint(0, 7) == 0:
                     h[1] -= 0.1
+                    
+            if h[0] == "age" and random.randint(0, 100) == 0:
+                h[1] -= 0.1
                     
             if h[2] == 0:
                 if h[0] == "enceinte":
@@ -154,8 +166,11 @@ class petitHomme:
                 self.sante.remove(h)
                 
                 
-        if not isEnceinte and not self.male and self.age>15 and self.age < 30 and random.randint(0, 25)==0:
+        if not isEnceinte and not self.male and self.age>15 and self.age < 30 and random.randint(0, 30)==0:
             self.sante.append(["enceinte", 1.0, 40])
+            
+        #~ if self.age >= 30 and self.age < 30. + 1/52:
+            #~ self.sante.append(["age", 1.0, -1])
         
     def addHealthEvent(self, name, gravity, time):
         h = self.getHealth()
@@ -406,7 +421,7 @@ class petiteHorde:
             
             p.update()
             if p.forme == 0:
-                print "Unfortunately, ",p.name," died"
+                print "##Unfortunately, ",p.name," died"
                 del self.personnes[p.name]
                 
             
