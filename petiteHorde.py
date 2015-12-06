@@ -112,18 +112,30 @@ class petitHomme:
             #~ print self.name," dead"
             return
         self.consume()
-        self.getExpectations()
+        #~ self.getExpectations()
         self.selectAction()
         
     def updateHealth(self):
-        self.age+= 1./52     
+        oldAge = int(self.age)
+        self.age+= 1./52    
+
+        if int(self.age) > oldAge:
+            print self.name+" anniversaire : "+str(int(self.age))
+            if int(self.age) == 30:
+                self.sante.append(["age", 1.0, -1])
+                
+        
         isEnceinte = False
         for h in self.sante:
-            h[2] -=1
+            if h[2] >=0:
+                h[2] -=1
             if h[0] == "enceinte" :
                 isEnceinte  = True
                 if random.randint(0, 7) == 0:
                     h[1] -= 0.1
+                    
+            if h[0] == "age" and random.randint(0, 100) == 0:
+                h[1] -= 0.1
                     
             if h[2] == 0:
                 if h[0] == "enceinte":
@@ -155,7 +167,11 @@ class petitHomme:
                 
                 
         if not isEnceinte and not self.male and self.age>15 and self.age < 30 and self.getHealth() >= 0.3 and random.randint(0, 25)==0:
+
             self.sante.append(["enceinte", 1.0, 40])
+            
+        #~ if self.age >= 30 and self.age < 30. + 1/52:
+            #~ self.sante.append(["age", 1.0, -1])
         
     def addHealthEvent(self, name, gravity, time):
         h = self.getHealth()
@@ -167,6 +183,8 @@ class petitHomme:
 
 
     def resolveAction(self):
+        if self.age < 10. + 1/52.:
+            return
         prevAct = self.action
         result = petiteAction.allActions[self.action].resolve(self)
         if self.action is not prevAct:
@@ -196,7 +214,8 @@ class petitHomme:
         
 
     def consume(self):
-        
+        if self.age < 5.:
+            return
         n = len(self.horde.personnes.keys())
         
         for need in ["faim"]:#, "soif"]:
@@ -220,10 +239,13 @@ class petitHomme:
         #~ for n in toLog:
             #~ sparseLogs(n, n + " asked after consume "+str(self.horde.personnes[n].asked))
 
-    def getExpectations(self):
-        pass
+    #~ def getExpectations(self):
+        #~ pass
 
     def selectAction(self):
+        if self.age < 10.:
+            return
+        
         #~ allActions =["cueillir baies","cueillir racines","cueillir champignons", "rester"]
 
         if random.randint(0, 9) ==0:
@@ -406,7 +428,7 @@ class petiteHorde:
             
             p.update()
             if p.forme == 0:
-                print "Unfortunately, ",p.name," died"
+                print "##Unfortunately, ",p.name," died. He was ",int(p.age)
                 del self.personnes[p.name]
                 
             
@@ -428,7 +450,7 @@ else:
 #~ toLog.append(pH.personnes.keys()[1])
 ##print toLog
 
-for i in range(10):
+for i in range(20):
     print "---"
     #~ print pH.shelter.objects
     pH.update()
@@ -450,7 +472,8 @@ for p in pH.personnes.values():
         
 print nbHommes," hommes, dont ",nbGarcons," enfants"
 print nbFemmes," femmes, dont ",nbFilles," enfants"
-
+print ""
+print "manger ",pH.shelter.needs.get("faim", 0.)/len(pH.personnes.keys())
 f = open('horde.json', 'w')
 f.write(pH.write())
 f.close()
