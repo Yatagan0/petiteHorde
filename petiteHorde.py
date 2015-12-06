@@ -154,7 +154,7 @@ class petitHomme:
                 self.sante.remove(h)
                 
                 
-        if not isEnceinte and not self.male and self.age>15 and self.age < 30 and random.randint(0, 25)==0:
+        if not isEnceinte and not self.male and self.age>15 and self.age < 30 and self.getHealth() >= 0.3 and random.randint(0, 25)==0:
             self.sante.append(["enceinte", 1.0, 40])
         
     def addHealthEvent(self, name, gravity, time):
@@ -424,7 +424,7 @@ else:
     pH = petiteHorde(content)
 
 
-toLog.append(pH.personnes.keys()[0])
+#~ toLog.append(pH.personnes.keys()[0])
 #~ toLog.append(pH.personnes.keys()[1])
 ##print toLog
 
@@ -433,7 +433,23 @@ for i in range(10):
     #~ print pH.shelter.objects
     pH.update()
 
-
+print "il y a ",len(pH.personnes.keys())," personnes dans la horde"
+nbFemmes = 0
+nbFilles = 0
+nbHommes = 0
+nbGarcons = 0
+for p in pH.personnes.values():
+    if p.male:
+        if p.age < 15:
+            nbGarcons +=1
+        nbHommes +=1
+    else:
+        if p.age < 15:
+            nbFilles +=1
+        nbFemmes +=1        
+        
+print nbHommes," hommes, dont ",nbGarcons," enfants"
+print nbFemmes," femmes, dont ",nbFilles," enfants"
 
 f = open('horde.json', 'w')
 f.write(pH.write())
