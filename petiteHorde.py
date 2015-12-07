@@ -112,7 +112,7 @@ class petitHomme:
             #~ print self.name," dead"
             return
         self.consume()
-        self.getExpectations()
+        #~ self.getExpectations()
         self.selectAction()
         
     def updateHealth(self):
@@ -166,7 +166,8 @@ class petitHomme:
                 self.sante.remove(h)
                 
                 
-        if not isEnceinte and not self.male and self.age>15 and self.age < 30 and random.randint(0, 30)==0:
+        if not isEnceinte and not self.male and self.age>15 and self.age < 30 and self.getHealth() >= 0.3 and random.randint(0, 25)==0:
+
             self.sante.append(["enceinte", 1.0, 40])
             
         #~ if self.age >= 30 and self.age < 30. + 1/52:
@@ -182,6 +183,8 @@ class petitHomme:
 
 
     def resolveAction(self):
+        if self.age < 10. + 1/52.:
+            return
         prevAct = self.action
         result = petiteAction.allActions[self.action].resolve(self)
         if self.action is not prevAct:
@@ -211,7 +214,8 @@ class petitHomme:
         
 
     def consume(self):
-        
+        if self.age < 5.:
+            return
         n = len(self.horde.personnes.keys())
         
         for need in ["faim"]:#, "soif"]:
@@ -235,10 +239,13 @@ class petitHomme:
         #~ for n in toLog:
             #~ sparseLogs(n, n + " asked after consume "+str(self.horde.personnes[n].asked))
 
-    def getExpectations(self):
-        pass
+    #~ def getExpectations(self):
+        #~ pass
 
     def selectAction(self):
+        if self.age < 10.:
+            return
+        
         #~ allActions =["cueillir baies","cueillir racines","cueillir champignons", "rester"]
 
         if random.randint(0, 9) ==0:
@@ -421,7 +428,7 @@ class petiteHorde:
             
             p.update()
             if p.forme == 0:
-                print "##Unfortunately, ",p.name," died"
+                print "##Unfortunately, ",p.name," died. He was ",int(p.age)
                 del self.personnes[p.name]
                 
             
@@ -443,13 +450,30 @@ else:
 #~ toLog.append(pH.personnes.keys()[1])
 ##print toLog
 
-for i in range(10):
+for i in range(20):
     print "---"
     #~ print pH.shelter.objects
     pH.update()
 
-
-
+print "il y a ",len(pH.personnes.keys())," personnes dans la horde"
+nbFemmes = 0
+nbFilles = 0
+nbHommes = 0
+nbGarcons = 0
+for p in pH.personnes.values():
+    if p.male:
+        if p.age < 15:
+            nbGarcons +=1
+        nbHommes +=1
+    else:
+        if p.age < 15:
+            nbFilles +=1
+        nbFemmes +=1        
+        
+print nbHommes," hommes, dont ",nbGarcons," enfants"
+print nbFemmes," femmes, dont ",nbFilles," enfants"
+print ""
+print "manger ",pH.shelter.needs.get("faim", 0.)/len(pH.personnes.keys())
 f = open('horde.json', 'w')
 f.write(pH.write())
 f.close()
