@@ -439,7 +439,7 @@ else:
     pH = petiteHorde(content)
 
 
-toLog.append(pH.personnes.keys()[0])
+#~ toLog.append(pH.personnes.keys()[0])
 #~ toLog.append(pH.personnes.keys()[1])
 ##print toLog
 

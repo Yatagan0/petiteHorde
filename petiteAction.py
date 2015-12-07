@@ -67,3 +67,4 @@ act.results["baies"] = [0., 0.2]
 act.newActions["cueillir baies"] = 0.005
 allActions[act.name] = act
 
+
