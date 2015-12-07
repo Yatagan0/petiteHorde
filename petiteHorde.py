@@ -6,10 +6,11 @@ import petiteAction
 #TODO
 
 #sante
-## age
-## naissances
+## plus d evenements sante
+## maladies
 #actions de groupe
 #objets
+# connaissances
 
 toLog = []
 def sparseLogs(name, toPrint):
@@ -55,6 +56,8 @@ class petitHomme:
         self.objects = {}
         self.asked = {}
         self.knownActions = {}
+        self.knowledges = {}
+        
         self.sante = []
         
         if saved is None:
@@ -80,8 +83,9 @@ class petitHomme:
             self.name = saved["name"]
             
             for a in saved["knownActions"].values():
-            
                 self.knownActions[a["name"]]= petiteActionConnue(a["name"], a)
+ 
+            self.knowledges=  saved["knowledges"]
             
             self.age = float(saved["age"])
             self.sante = list(saved["sante"])
@@ -251,21 +255,24 @@ class petitHomme:
         if random.randint(0, 9) ==0:
             name = random.choice(self.horde.personnes.keys())
             if name != self.name:
-                self.action = self.horde.personnes[name].action
+                act = self.horde.personnes[name].action
+                if petiteAction.allActions[act].canDo(self):
+                    self.action = act
             
             
             #~ self.action = random.choice(allActions)
-                sparseLogs(self.name, "chosen "+str(self.action)+", like "+name)
-                return
+                    sparseLogs(self.name, "chosen "+str(self.action)+", like "+name)
+                    return
             
         action = "rester"
         exp = 100.
         for a in self.knownActions.values():
-            e= dictDist(a.expects({}), self.asked)
-            #~ sparseLogs(self.name, a.name+" exp "+str(e))
-            if e < exp and random.random() < 0.9:
-                exp = e
-                action = a.name
+            if petiteAction.allActions[a.name].canDo(self):
+                e= dictDist(a.expects({}), self.asked)
+                #~ sparseLogs(self.name, a.name+" exp "+str(e))
+                if e < exp and random.random() < 0.9:
+                    exp = e
+                    action = a.name
 ##                sparseLogs(self.name, "exp "+str(exp))
             
             
@@ -446,7 +453,7 @@ else:
     pH = petiteHorde(content)
 
 
-#~ toLog.append(pH.personnes.keys()[0])
+toLog.append(pH.personnes.keys()[0])
 #~ toLog.append(pH.personnes.keys()[1])
 ##print toLog
 
