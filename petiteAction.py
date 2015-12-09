@@ -29,7 +29,7 @@ class petiteAction:
             rr = random.random()
             #~ print rr
             if  rr < self.acquiredKnowledges[a]:
-                print "acquiring ",a
+                #~ print "acquiring ",a
                 k = p.knowledges.get(a, 0)
                 k += (1-k)*0.1
                 p.knowledges[a] = k

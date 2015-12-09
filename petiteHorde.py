@@ -174,8 +174,8 @@ class petitHomme:
 
             self.sante.append(["enceinte", 1.0, 40])
             
-        #~ if self.age >= 30 and self.age < 30. + 1/52:
-            #~ self.sante.append(["age", 1.0, -1])
+        if self.getHealth() <= 0.:
+            self.forme = 0.
         
     def addHealthEvent(self, name, gravity, time):
         h = self.getHealth()
@@ -457,7 +457,7 @@ toLog.append(pH.personnes.keys()[0])
 #~ toLog.append(pH.personnes.keys()[1])
 ##print toLog
 
-for i in range(20):
+for i in range(10):
     print "---"
     #~ print pH.shelter.objects
     pH.update()
