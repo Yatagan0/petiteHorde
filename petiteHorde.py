@@ -3,20 +3,21 @@
 import random
 
 import petiteAction
+import utils
 #TODO
 
 #sante
 ## plus d evenements sante
 ## maladies
+## ne pas aller chasser si trop malade
 #actions de groupe
+# gestion du risque des actions
 #objets
 # connaissances
+## plus de connaissances
+## apprentissage pour les jeunes
 
-toLog = []
-def sparseLogs(name, toPrint):
-    if name in toLog:
-        print toPrint
-        
+
 def dictDist(dict1, dict2):
     d = 0.
     for k1 in dict1.keys():
@@ -31,22 +32,7 @@ from json import JSONEncoder
 class MyEncoder(JSONEncoder):
     def default(self, o):
         return o.__dict__           
-    
-needsFromObjects = {}
-needsFromObjects["baies"] = {"faim":0.6, "soif":0.5}
-needsFromObjects["racines"] = {"faim":0.9}
-needsFromObjects["champignons"] = {"faim":0.8, "soif":0.2}
-needsFromObjects["eau"] = {"soif":1.}
-needsFromObjects["viande"] = {"faim":1.}
-needsFromObjects["fruits"] = {"faim":0.8, "soif":0.2}
-        
-        
-consonnes_rares = "B.D.F.G.H.J.V.Qu.Ch.Pr.Cr.Sc"
-consonnes_frequentes = "C.L.M.N.P.R.S.T.St.Tr"
-consonnes = consonnes_frequentes.split('.')*2 + consonnes_rares.split('.')
-voyelles_rares = "u.in.ai.ei.eu.ia.ui.io"
-voyelles_frequentes = "a.e.i.o.on.ou.en.au"
-voyelles = voyelles_frequentes.split('.')*2 + voyelles_rares.split('.')    
+
 
 class petitHomme:
     def __init__(self, horde, saved=None):
@@ -61,12 +47,7 @@ class petitHomme:
         self.sante = []
         
         if saved is None:
-            self.name = random.choice(consonnes)+random.choice(voyelles)+random.choice(consonnes).lower()+random.choice(voyelles)
-            if random.randint(0,1) ==0:
-                self.name +=random.choice(consonnes).lower()
-                if random.randint(0,1) ==0:
-                    self.name +=random.choice(voyelles)
-        #print self.name
+            self.name = utils.getName()
 
             self.knownActions["rester"]= petiteActionConnue("rester")
             
@@ -75,6 +56,7 @@ class petitHomme:
             self.forme = 1.
             
             self.action = "rester"
+            self.accompagniedBy = []
             
             
         else:
@@ -94,12 +76,10 @@ class petitHomme:
             self.forme =  float(saved["forme"])
             
             self.action = saved["action"]
+            self.accompagniedBy =  list(saved["accompagniedBy"])
+            
+            self.objects = saved["objects"]
 
-
-    #~ def __dict__(self):
-        #~ print "blu"
-        #~ self.horde = None
-        #~ return Object.__dict__(self)
 
     def write(self):
         self.horde = None
@@ -137,35 +117,39 @@ class petitHomme:
                 isEnceinte  = True
                 if random.randint(0, 7) == 0:
                     h[1] -= 0.1
+                if self.getHealth() <= 0.:
+                    self.forme = 0.
+                    print "##Unfortunately, ",self.name," died of grossesse. She was ",int(self.age)           
                     
             if h[0] == "age" and random.randint(0, 100) == 0:
                 h[1] -= 0.1
+                if self.getHealth() <= 0.:
+                    self.forme = 0.
+                    if self.male:
+                        print "##Unfortunately, ",self.name," died. He was ",int(self.age)
+                    else:
+                        print "##Unfortunately, ",self.name," died. She was ",int(self.age)
                     
             if h[2] == 0:
                 if h[0] == "enceinte":
+                    print self.name, " accouche"
                     self.addHealthEvent("accouchement", 0.6, 1)
-                    if self.forme > 0:
-                        print self.name, " a accouche"
-                        if random.randint(0, 10)==0:
-                            print "mais le bebe n'a pas survecu"
-                        else:
-                            p = self.horde.addPersonne()
-                            print "le bebe s'appelle ",p.name
-                            if p.male:
-                                print "c'est un garcon"
-                            else:
-                                print "c'est une fille"
+                    
+                    probaBebe = 10
+                    if self.forme == 0:
+                        probaBebe = 1
+                        
+                    
+                        #~ print self.name, " a accouche"
+                    if random.randint(0, probaBebe )==0:
+                        print "mais le bebe n'a pas survecu"
                     else:
-                        print self.name, " a peri durant l'accouchement"
-                        if random.randint(0, 1)==0:
-                            print "et le bebe n'a pas survecu"
+                        p = self.horde.addPersonne()
+                        if p.male:
+                            print "le bebe s'appelle ",p.name,", c'est un garcon"
                         else:
-                            p = self.horde.addPersonne()
-                            print "le bebe s'appelle ",p.name
-                            if p.male:
-                                print "c'est un garcon"
-                            else:
-                                print "c'est une fille"
+                            print "le bebe s'appelle ",p.name,", c'est une fille"
+
                         
                 self.sante.remove(h)
                 
@@ -174,14 +158,19 @@ class petitHomme:
 
             self.sante.append(["enceinte", 1.0, 40])
             
-        if self.getHealth() <= 0.:
-            self.forme = 0.
+
         
     def addHealthEvent(self, name, gravity, time):
+        utils.sparseLogs(self.name, self.name +" subit "+name)
+        #~ print self.name +" subit "+name
         h = self.getHealth()
         if h < 1 - gravity:
             if h < random.random()*(1 - gravity):
                 self.forme = 0
+                if self.male:
+                    print "##Unfortunately, ",self.name," died of "+name+". He was ",int(self.age)
+                else:
+                    print "##Unfortunately, ",self.name," died of "+name+". She was ",int(self.age)
                 
         self.sante.append([name,gravity,time ])
 
@@ -189,37 +178,58 @@ class petitHomme:
     def resolveAction(self):
         if self.age < 10. + 1/52.:
             return
-        prevAct = self.action
-        result = petiteAction.allActions[self.action].resolve(self)
-        if self.action is not prevAct:
-            sparseLogs(self.name, self.name+ ": in fact, I did "+self.action+" instead of "+prevAct)
             
-        sparseLogs(self.name, self.name+ " brings from "+self.action+": "+str(result))
+        if self.action != "resolved":
+            
+            prevAct = self.action
+            result = petiteAction.allActions[self.action].resolve(self)
+            if self.action is not prevAct:
+                utils.sparseLogs(self.name, self.name+ ": in fact, I did "+self.action+" instead of "+prevAct)
+                
+            utils.sparseLogs(self.name, self.name+ " brings from "+self.action+": "+str(result))
+            if not petiteAction.allActions[self.action].dontRemember:
+                if self.action not in self.knownActions.keys():
+                    self.knownActions[self.action] = petiteActionConnue(self.action)
+                    
+                self.knownActions[self.action].feedback({}, result)
+
+
         
-        if self.action not in self.knownActions.keys():
-            self.knownActions[self.action] = petiteActionConnue(self.action)
-            
-        self.knownActions[self.action].feedback({}, result)
+            for r in result.keys():
+                #~ self.horde.shelter.addObject(r, result[r])
+                self.objects[r] = self.objects.get(r, 0) + result[r]
+                for n in utils.needsFromObjects[r].keys():
+                    self.horde.askFor(n, - utils.needsFromObjects[r][n]*result[r])
+    ##                self.asked[n] = max(-1, self.asked.get(n, 0) - needsFromObjects[r][n]*result[r])
+    
+                    
+            for n in self.accompagniedBy:
+                personne = self.horde.personnes[n]
+                result = petiteAction.allActions[self.action].resolve(personne, noChange=True)
+                utils.sparseLogs(personne.name, personne.name+ " brings from "+self.action+" with "+self.name+": "+str(result))
+                if not petiteAction.allActions[self.action].dontRemember:
+                    if self.action not in personne.knownActions.keys():
+                        personne.knownActions[self.action] = petiteActionConnue(self.action)
+                    
+                    personne.knownActions[self.action].feedback({}, result)
+                
+                for r in result.keys():
+                    #~ self.horde.shelter.addObject(r, result[r])
+                    personne.objects[r] = personne.objects.get(r, 0) + result[r]
+                    for n in utils.needsFromObjects[r].keys():
+                        self.horde.askFor(n, - utils.needsFromObjects[r][n]*result[r])
+                
+                personne.action = "resolved"
+
+        self.accompagniedBy = []
         self.action = ""     
-        
-        for r in result.keys():
-            self.horde.shelter.addObject(r, result[r])
-            for n in needsFromObjects[r].keys():
-                self.horde.askFor(n, - needsFromObjects[r][n]*result[r])
-##                self.asked[n] = max(-1, self.asked.get(n, 0) - needsFromObjects[r][n]*result[r])
-        #~ print self.horde.shelter.objects
-
-        #~ for n in toLog:
-            #~ sparseLogs(n, n + " asked after resolve "+str(self.horde.personnes[n].asked))
-##        sparseLogs(self.name, self.name+" action "+self.action)
-##        sparseLogs(self.name, self.name+" needs "+str(self.knownActions[self.action].needs))
-##        sparseLogs(self.name, self.name+" result "+str(self.knownActions[self.action].results))
-
-        
-
+ 
     def consume(self):
-        if self.age < 5.:
-            return
+        
+        for o in self.objects.keys():
+            self.horde.shelter.addObject(o, self.objects[o])
+            self.objects[o] = 0
+
         n = len(self.horde.personnes.keys())
         
         for need in ["faim"]:#, "soif"]:
@@ -228,48 +238,44 @@ class petitHomme:
             toEat = min(manger/n, 1.)
             #~ print toEat
             self.horde.shelter.getFromNeeds(need, toEat)
-            sparseLogs(self.name, self.name+" eats "+str( toEat))
+            #~ utils.sparseLogs(self.name, self.name+" eats "+str( toEat))
+            
+            if need == "faim":
+                self.forme = toEat
+                if self.age < 15.:
+                    toEat = self.age*toEat/self.age     
+                
             if toEat == 1.:
                 self.horde.askFor(need, max(0, 2 - manger/n))
-                #~ sparseLogs(self.name, "asking1 for "+str( max(0, 2 - manger/n)))
+                #~ utils.sparseLogs(self.name, "asking1 for "+str( max(0, 2 - manger/n)))
             else:
                 self.horde.askFor(need, 1.)
                 
-            if need == "faim":
-                self.forme = toEat
-                #~ sparseLogs(self.name, "asking2 for "+str(1))
-            #~ sparseLogs(self.name, "manger "+str(manger/n)+" toEat "+str(toEat))
-        #~ print self.horde.shelter.objects
-        #~ for n in toLog:
-            #~ sparseLogs(n, n + " asked after consume "+str(self.horde.personnes[n].asked))
-
-    #~ def getExpectations(self):
-        #~ pass
 
     def selectAction(self):
         if self.age < 10.:
             return
-        
-        #~ allActions =["cueillir baies","cueillir racines","cueillir champignons", "rester"]
 
-        if random.randint(0, 9) ==0:
+        numRandom = 10
+        if self.age < 15.:
+            numRandom = 1 + int(9*self.age/15.) #les jeunes imitent plus
+        if random.randint(0, numRandom) ==0:
             name = random.choice(self.horde.personnes.keys())
-            if name != self.name:
+            if name != self.name and self.horde.personnes[name].age > 15.:
                 act = self.horde.personnes[name].action
-                if petiteAction.allActions[act].canDo(self):
-                    self.action = act
+                #~ if petiteAction.allActions[act].canDo(self):
+                self.action = act
+                self.horde.personnes[name].accompagniedBy.append(self.name)
             
-            
-            #~ self.action = random.choice(allActions)
-                    sparseLogs(self.name, "chosen "+str(self.action)+", like "+name)
-                    return
+                utils.sparseLogs(self.name, "chosen "+str(self.action)+", like "+name)
+                return
             
         action = "rester"
         exp = 100.
         for a in self.knownActions.values():
             if petiteAction.allActions[a.name].canDo(self):
                 e= dictDist(a.expects({}), self.asked)
-                #~ sparseLogs(self.name, a.name+" exp "+str(e))
+                #~ utils.sparseLogs(self.name, a.name+" exp "+str(e))
                 if e < exp and random.random() < 0.9:
                     exp = e
                     action = a.name
@@ -335,8 +341,8 @@ class petiteActionConnue:
             self.results[r] *= (1 - rate)
             
         for r in results.keys():
-            for n in needsFromObjects[r]:
-                self.results[n] = self.results.get(n, 0) +rate*results[r]*needsFromObjects[r][n]
+            for n in utils.needsFromObjects[r]:
+                self.results[n] = self.results.get(n, 0) +rate*results[r]*utils.needsFromObjects[r][n]
 
       
 class petiteMaison:
@@ -359,9 +365,9 @@ class petiteMaison:
         
     def addObject(self, name, num):
         self.objects[name] = self.objects.get(name, 0.) + num
-        for n in needsFromObjects.get(name, {}).keys():
+        for n in utils.needsFromObjects.get(name, {}).keys():
             #~ print n
-            self.needs[n] = self.needs.get(n, 0.) +num*needsFromObjects[name][n]
+            self.needs[n] = self.needs.get(n, 0.) +num*utils.needsFromObjects[name][n]
         #~ print self.objects
         #~ print self.needs
         
@@ -372,9 +378,9 @@ class petiteMaison:
             #~ print needsFromObjects.get(o, {}).get(need, 0)
             if self.objects[o] == 0:
                 continue
-            if needsFromObjects.get(o, {}).get(need, 0) > 0:
-                n = min(self.objects[o], num/needsFromObjects[o][need])
-                num -= n*needsFromObjects[o][need]
+            if utils.needsFromObjects.get(o, {}).get(need, 0) > 0:
+                n = min(self.objects[o], num/utils.needsFromObjects[o][need])
+                num -= n*utils.needsFromObjects[o][need]
                 #~ print "eating ",n,o, "remaining ", num
                 
                 self.addObject(o, -n)
@@ -388,9 +394,9 @@ class petiteHorde:
         if saved == None:
             self.shelter = petiteMaison()
             
-            for i in range(10):
+            for i in range(12):
                 p = self.addPersonne()
-                p.age = 15
+                p.age = 10 +10*random.random()
 
         else:
             self.shelter = petiteMaison(saved["shelter"])
@@ -435,9 +441,35 @@ class petiteHorde:
             
             p.update()
             if p.forme == 0:
-                print "##Unfortunately, ",p.name," died. He was ",int(p.age)
+                
                 del self.personnes[p.name]
                 
+    def run(self, num=10):
+        for i in range(num):
+            print "---"
+            self.update()
+            
+            
+        print "il y a ",len(self.personnes.keys())," personnes dans la horde"
+        nbFemmes = 0
+        nbFilles = 0
+        nbHommes = 0
+        nbGarcons = 0
+        for p in self.personnes.values():
+            if p.male:
+                if p.age < 15:
+                    nbGarcons +=1
+                nbHommes +=1
+            else:
+                if p.age < 15:
+                    nbFilles +=1
+                nbFemmes +=1        
+                
+        print nbHommes," hommes, dont ",nbGarcons," enfants"
+        print nbFemmes," femmes, dont ",nbFilles," enfants"
+        print ""
+        print "manger ",self.shelter.needs.get("faim", 0.)/len(self.personnes.keys())
+                        
             
 import json
 newHorde =False
@@ -453,34 +485,12 @@ else:
     pH = petiteHorde(content)
 
 
-toLog.append(pH.personnes.keys()[0])
-#~ toLog.append(pH.personnes.keys()[1])
+#~ utils.toLog.append(pH.personnes.keys()[0])
+#~ utils.toLog.append(pH.personnes.keys()[1])
 ##print toLog
 
-for i in range(10):
-    print "---"
-    #~ print pH.shelter.objects
-    pH.update()
+pH.run(10)
 
-print "il y a ",len(pH.personnes.keys())," personnes dans la horde"
-nbFemmes = 0
-nbFilles = 0
-nbHommes = 0
-nbGarcons = 0
-for p in pH.personnes.values():
-    if p.male:
-        if p.age < 15:
-            nbGarcons +=1
-        nbHommes +=1
-    else:
-        if p.age < 15:
-            nbFilles +=1
-        nbFemmes +=1        
-        
-print nbHommes," hommes, dont ",nbGarcons," enfants"
-print nbFemmes," femmes, dont ",nbFilles," enfants"
-print ""
-print "manger ",pH.shelter.needs.get("faim", 0.)/len(pH.personnes.keys())
 f = open('horde.json', 'w')
 f.write(pH.write())
 f.close()
